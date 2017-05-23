@@ -4,7 +4,12 @@ This crate adds a "inspect" method to all futures, allowing you to tag futures w
 
 ## Usage
 
-Setup a logger through the `log` crate. Then:
+Setup a logger through the `log` crate. Then use the extension trait:
+
+```rust
+extern crate futures_poll_log;
+use futures_poll_log::LoggingExt;
+```
 
 ```rust
 let _: Result<i32, _> =futures::future::ok(3)

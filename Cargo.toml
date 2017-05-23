@@ -1,6 +1,6 @@
 [package]
 name = "futures-poll-log"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["Florian Gilcher <florian.gilcher@asquera.de>"]
 description = "A crate to trace poll calls on futures"
 homepage = "https://github.com/skade/futures-poll-log"

@@ -1,3 +1,10 @@
+#![deny(missing_docs)]
+
+//! This module provides a way to wrap Futures
+//! in another Future that logs internal calls
+//! to poll. This allows a better understanding
+//! for when polls happen for both teaching
+//! and debugging.
 extern crate futures;
 
 #[cfg(not(feature="silence"))]
@@ -7,10 +14,11 @@ extern crate log;
 use futures::{Future, Poll};
 use std::fmt::Debug;
 
+/// The LoggedFuture struct wraps another Future and
+/// will log all poll calls.
 #[derive(Debug)]
 pub struct LoggedFuture<T, E, F: Future<Item = T, Error = E>> {
     future: F,
-    #[cfg(not(silence))]
     label: String,
 }
 
@@ -47,11 +55,20 @@ impl<T, E, F> Future for LoggedFuture<T, E, F>
     }
 }
 
+/// LoggingExt introduces the logging capabilities
+/// to any Future, as long as all its Item and Error
+/// can be printed.
 pub trait LoggingExt<T, E>
     where T: Debug,
           E: Debug,
           Self: Future<Item = T, Error = E> + Sized
 {
+    /// inspect() sets up the logging. The `label` will
+    /// be used to identify the Future in the log messages
+    /// used.
+    ///
+    /// This method returns `Self` instead of a `LoggedFuture`
+    /// when the `silence` feature is activated.
     #[cfg(not(feature="silence"))]
     fn inspect(self, label: &str) -> LoggedFuture<T, E, Self>;
     #[cfg(feature="silence")]
