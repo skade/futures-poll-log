@@ -1,23 +1,25 @@
 extern crate futures;
 
 #[cfg(not(feature="silence"))]
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate log;
 
 use futures::{Future, Poll};
 use std::fmt::Debug;
 
 #[derive(Debug)]
-pub struct LoggedFuture<T, E, F: Future<Item=T, Error=E>> {
+pub struct LoggedFuture<T, E, F: Future<Item = T, Error = E>> {
     future: F,
     #[cfg(not(silence))]
-    label: String
+    label: String,
 }
 
 #[cfg(not(feature="silence"))]
 impl<T, E, F> Future for LoggedFuture<T, E, F>
     where T: Debug,
           E: Debug,
-          F: Future<Item=T, Error=E> {
+          F: Future<Item = T, Error = E>
+{
     type Item = F::Item;
     type Error = F::Error;
 
@@ -34,7 +36,8 @@ impl<T, E, F> Future for LoggedFuture<T, E, F>
 impl<T, E, F> Future for LoggedFuture<T, E, F>
     where T: Debug,
           E: Debug,
-          F: Future<Item=T, Error=E> {
+          F: Future<Item = T, Error = E>
+{
     type Item = F::Item;
     type Error = F::Error;
 
@@ -47,8 +50,8 @@ impl<T, E, F> Future for LoggedFuture<T, E, F>
 pub trait LoggingExt<T, E>
     where T: Debug,
           E: Debug,
-          Self: Future<Item=T, Error=E> + Sized {
-
+          Self: Future<Item = T, Error = E> + Sized
+{
     #[cfg(not(feature="silence"))]
     fn inspect(self, label: &str) -> LoggedFuture<T, E, Self>;
     #[cfg(feature="silence")]
@@ -58,11 +61,14 @@ pub trait LoggingExt<T, E>
 impl<T, E, F> LoggingExt<T, E> for F
     where T: Debug,
           E: Debug,
-          Self: Future<Item=T, Error=E> {
-
+          Self: Future<Item = T, Error = E>
+{
     #[cfg(not(feature="silence"))]
     fn inspect(self, label: &str) -> LoggedFuture<T, E, Self> {
-        LoggedFuture { future: self, label: label.to_owned() }
+        LoggedFuture {
+            future: self,
+            label: label.to_owned(),
+        }
     }
     #[cfg(feature="silence")]
     fn inspect(self, _: &str) -> Self {

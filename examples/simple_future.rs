@@ -9,19 +9,16 @@ use log::{LogRecord, LogLevel, LogMetadata, LogLevelFilter};
 
 fn main() {
     log::set_logger(|max_log_level| {
-        max_log_level.set(LogLevelFilter::Trace);
-        Box::new(SimpleLogger)
-    }).unwrap();
+                        max_log_level.set(LogLevelFilter::Trace);
+                        Box::new(SimpleLogger)
+                    })
+            .unwrap();
 
-    let _: Result<i32, _> =futures::future::ok(3)
+    let _: Result<i32, _> = futures::future::ok(3)
         .inspect("immeditate future")
-        .map(|i| {
-            i*2
-        })
+        .map(|i| i * 2)
         .inspect("mapped future")
-        .and_then(|_| {
-            Err("ooops".to_string())
-        })
+        .and_then(|_| Err("ooops".to_string()))
         .inspect("failing future")
         .wait();
 }

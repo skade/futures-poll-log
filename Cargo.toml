@@ -2,6 +2,13 @@
 name = "futures-poll-log"
 version = "1.0.0"
 authors = ["Florian Gilcher <florian.gilcher@asquera.de>"]
+description = "A crate to trace poll calls on futures"
+homepage = "https://github.com/skade/futures-poll-log"
+readme = "README.md"
+
+keywords = ["log", "debug", "trace"]
+categories = ["development-tools::debugging", "no-std", "asynchronous"]
+license = "MIT"
 
 [dependencies]
 futures = "0.1"
