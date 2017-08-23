@@ -61,7 +61,7 @@ extern crate futures;
 #[cfg(not(feature="silence"))]
 #[macro_use]
 extern crate log;
-
+use  futures::Async;
 use futures::{Future, Poll};
 use std::fmt::Debug;
 
@@ -90,7 +90,12 @@ impl<T, E, F> Future for LoggedFuture<T, E, F>
         if self.log_content{
             debug!(target: "futures_log", "Future `{}' polled: {:?}", self.label, poll);
         }else{
-            debug!(target: "futures_log", "Future `{}' polled", self.label);
+            match &poll{
+                &Ok(Async::Ready(_))=>{ debug!(target: "futures_log", "Future `{}' polled and is ready", self.label);},
+                &Ok(Async::NotReady)=>{ debug!(target: "futures_log", "Future `{}' polled and is not ready", self.label);},
+                &Err(ref e)=>{ debug!(target: "futures_log", "Future `{}' polled and  errored {:?}", self.label,e);},
+            }
+           
         }
         poll
     }
