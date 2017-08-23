@@ -71,6 +71,7 @@ use std::fmt::Debug;
 pub struct LoggedFuture<T, E, F: Future<Item = T, Error = E>> {
     future: F,
     label: String,
+    log_content:bool
 }
 
 #[cfg(not(feature="silence"))]
@@ -86,7 +87,11 @@ impl<T, E, F> Future for LoggedFuture<T, E, F>
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         debug!(target: "futures_log", "Polling future `{}'", self.label);
         let poll = self.future.poll();
-        debug!(target: "futures_log", "Future `{}' polled: {:?}", self.label, poll);
+        if self.log_content{
+            debug!(target: "futures_log", "Future `{}' polled: {:?}", self.label, poll);
+        }else{
+            debug!(target: "futures_log", "Future `{}' polled", self.label);
+        }
         poll
     }
 }
@@ -126,6 +131,41 @@ pub trait LoggingExt<T, E>
     fn inspect(self, label: &str) -> Self;
 }
 
+/// LoggingExt introduces the logging capabilities
+/// to any Future, as long as all its Item and Error
+/// can be printed.
+pub trait LoggingExtSimple<T, E>
+    where Self: Future<Item = T, Error = E> + Sized
+{
+    /// inspect() sets up the logging. The `label` will
+    /// be used to identify the Future in the log messages
+    /// used.
+    ///
+    /// This method returns `Self` instead of a `LoggedFuture`
+    /// when the `silence` feature is activated.
+    #[cfg(not(feature="silence"))]
+    fn inspect_simple(self, label: &str) -> LoggedFuture<T, E, Self>;
+    #[cfg(feature="silence")]
+    fn inspect_simple(self, label: &str) -> Self;
+}
+
+impl<T, E, F> LoggingExtSimple<T, E> for F
+    where  Self: Future<Item = T, Error = E>
+{
+    #[cfg(not(feature="silence"))]
+    fn inspect_simple(self, label: &str) -> LoggedFuture<T, E, Self> {
+        LoggedFuture {
+            future: self,
+            label: label.to_owned(),
+            log_content:false
+        }
+    }
+    #[cfg(feature="silence")]
+    fn inspect_simple(self, _: &str) -> Self {
+        self
+    }
+}
+
 impl<T, E, F> LoggingExt<T, E> for F
     where T: Debug,
           E: Debug,
@@ -136,6 +176,7 @@ impl<T, E, F> LoggingExt<T, E> for F
         LoggedFuture {
             future: self,
             label: label.to_owned(),
+            log_content:true
         }
     }
     #[cfg(feature="silence")]
