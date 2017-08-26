@@ -61,16 +61,25 @@ extern crate futures;
 #[cfg(not(feature="silence"))]
 #[macro_use]
 extern crate log;
-
+use  futures::Async;
 use futures::{Future, Poll};
 use std::fmt::Debug;
 
 /// The LoggedFuture struct wraps another Future and
-/// will log all poll calls.
+/// will log all poll calls with content of the poll.
 #[derive(Debug)]
 pub struct LoggedFuture<T, E, F: Future<Item = T, Error = E>> {
     future: F,
-    label: String,
+    label: String
+}
+
+
+/// The LoggedFuture struct wraps another Future and
+/// will log all poll calls with poll result.
+#[derive(Debug)]
+pub struct LoggedFutureSimple<T, E, F: Future<Item = T, Error = E>> {
+    future: F,
+    label: String
 }
 
 #[cfg(not(feature="silence"))]
@@ -91,10 +100,45 @@ impl<T, E, F> Future for LoggedFuture<T, E, F>
     }
 }
 
+#[cfg(not(feature="silence"))]
+impl<T, E, F> Future for LoggedFutureSimple<T, E, F>
+    where E: Debug,
+          F: Future<Item = T, Error = E>
+{
+    type Item = F::Item;
+    type Error = F::Error;
+
+    #[inline]
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        debug!(target: "futures_log", "Polling future `{}'", self.label);
+        let poll = self.future.poll();
+            match &poll{
+                &Ok(Async::Ready(_))=>{ debug!(target: "futures_log", "Future `{}' polled and is ready", self.label);},
+                &Ok(Async::NotReady)=>{ debug!(target: "futures_log", "Future `{}' polled and is not ready", self.label);},
+                &Err(ref e)=>{ debug!(target: "futures_log", "Future `{}' polled and  errored {:?}", self.label,e);},
+            }
+        poll
+    }
+}
+
 #[cfg(feature="silence")]
 impl<T, E, F> Future for LoggedFuture<T, E, F>
     where T: Debug,
           E: Debug,
+          F: Future<Item = T, Error = E>
+{
+    type Item = F::Item;
+    type Error = F::Error;
+
+    #[inline]
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        self.future.poll()
+    }
+}
+
+#[cfg(feature="silence")]
+impl<T, E, F> Future for LoggedFutureSimple<T, E, F>
+    where E: Debug,
           F: Future<Item = T, Error = E>
 {
     type Item = F::Item;
@@ -126,6 +170,40 @@ pub trait LoggingExt<T, E>
     fn inspect(self, label: &str) -> Self;
 }
 
+/// LoggingExtSimple introduces the logging capabilities
+/// to any Future, as long as its Error
+/// can be printed.
+pub trait LoggingExtSimple<T, E>
+    where Self: Future<Item = T, Error = E> + Sized
+{
+    /// inspect_simple() sets up the logging. The `label` will
+    /// be used to identify the Future in the log messages
+    /// used.
+    ///
+    /// This method returns `Self` instead of a `LoggedFutureSimple`
+    /// when the `silence` feature is activated.
+    #[cfg(not(feature="silence"))]
+    fn inspect_simple(self, label: &str) -> LoggedFutureSimple<T, E, Self>;
+    #[cfg(feature="silence")]
+    fn inspect_simple(self, label: &str) -> Self;
+}
+
+impl<T, E, F> LoggingExtSimple<T, E> for F
+    where  Self: Future<Item = T, Error = E>
+{
+    #[cfg(not(feature="silence"))]
+    fn inspect_simple(self, label: &str) -> LoggedFutureSimple<T, E, Self> {
+        LoggedFutureSimple {
+            future: self,
+            label: label.to_owned()
+        }
+    }
+    #[cfg(feature="silence")]
+    fn inspect_simple(self, _: &str) -> Self {
+        self
+    }
+}
+
 impl<T, E, F> LoggingExt<T, E> for F
     where T: Debug,
           E: Debug,
@@ -135,7 +213,7 @@ impl<T, E, F> LoggingExt<T, E> for F
     fn inspect(self, label: &str) -> LoggedFuture<T, E, Self> {
         LoggedFuture {
             future: self,
-            label: label.to_owned(),
+            label: label.to_owned()
         }
     }
     #[cfg(feature="silence")]
